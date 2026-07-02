@@ -1,0 +1,15 @@
+services:
+  db:
+    image: postgres:16
+    container_name: scopeflow_db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: scopeflow_user
+      POSTGRES_PASSWORD: scopeflow_password
+      POSTGRES_DB: scopeflow_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
