@@ -24,6 +24,8 @@ Use:
 - FastAPI
 - PostgreSQL
 - SQLAlchemy ORM
+- SQLAlchemy async support
+- asyncpg
 - Alembic
 - Pydantic / pydantic-settings
 - JWT authentication
@@ -45,7 +47,46 @@ Responsibilities:
 - SQLAlchemy models should only define database structure and relationships.
 - Pydantic schemas should handle request and response validation.
 
-Do not put raw SQLAlchemy queries inside routers unless it is a temporary health check.
+Do not put business logic inside routers.
+
+## Async Rules
+
+Use async consistently across the backend.
+
+- Routers must use async def.
+- Services must use async def.
+- Repositories must use async def.
+- Database access must use AsyncSession.
+- Use create_async_engine.
+- Use async_sessionmaker.
+- Use asyncpg for application database access.
+- Await database calls such as db.execute(), db.commit(), db.refresh(), and db.delete().
+- Do not use synchronous SQLAlchemy Session in application code.
+- Do not mix async FastAPI endpoints with synchronous SQLAlchemy database sessions.
+
+The application DATABASE_URL should use this format:
+
+postgresql+asyncpg://user:password@host:port/database
+
+## Alembic Rules
+
+The application uses async SQLAlchemy, but Alembic migrations may use the sync PostgreSQL driver.
+
+If DATABASE_URL uses:
+
+postgresql+asyncpg://...
+
+then alembic/env.py should convert it to:
+
+postgresql+psycopg://...
+
+for migration execution.
+
+Do not remove psycopg unless Alembic is fully converted to async migrations.
+
+All database schema changes must be created through Alembic migrations.
+
+Migration files should be committed to git.
 
 ## Current Project State
 
@@ -55,12 +96,14 @@ The project already has:
 - FastAPI app in app/main.py
 - health router in app/routers/health_router.py
 - settings in app/core/config.py
-- SQLAlchemy database connection in app/db/database.py
-- Base model class in app/db/base.py
 - PostgreSQL running via docker-compose.yml
+- async SQLAlchemy database connection in app/db/database.py
+- Base model class in app/db/base.py
 - Alembic initialized and connected to app.db.base.Base.metadata
+- /health endpoint working
+- /health/db endpoint working with AsyncSession
 
-Continue from the next step: create the User model and the first Alembic migration.
+Continue from the next step: create the User model and first Alembic migration.
 
 ## Coding Style
 
@@ -70,13 +113,13 @@ Prefer clear code over clever abstractions.
 
 Use type hints where practical.
 
-Avoid unnecessary generic base repository abstractions for now. Repositories can be simple classes or functions per entity.
-
-Use async SQLAlchemy with AsyncSession, create_async_engine, async_sessionmaker, and asyncpg.
+Avoid unnecessary generic base repository abstractions for now.
 
 Use snake_case for Python files, functions, and variables.
 
 Use PascalCase for SQLAlchemy models and Pydantic schemas.
+
+Keep files small and focused.
 
 ## Database Conventions
 
@@ -92,31 +135,31 @@ Use timezone-naive datetime with datetime.utcnow for now to keep the project sim
 
 Use PostgreSQL through SQLAlchemy.
 
-All database schema changes must be created through Alembic migrations.
+## Environment and Commands
 
-Migration files should be committed to git.
+Use uv commands only.
 
-## Environment
+Run app:
 
-Use uv commands.
+uv run uvicorn app.main:app --reload
 
-Examples:
+Run Alembic:
 
-- Run app:
-  uv run uvicorn app.main:app --reload
+uv run alembic revision --autogenerate -m "message"
 
-- Run Alembic:
-  uv run alembic revision --autogenerate -m "message"
-  uv run alembic upgrade head
+uv run alembic upgrade head
 
-- Run tests:
-  uv run pytest
+Run tests:
+
+uv run pytest
 
 Do not use pip directly unless explicitly asked.
 
 ## Implementation Order
 
-Follow this order unless instructed otherwise:
+Build incrementally.
+
+Next steps:
 
 1. User model
 2. Alembic migration for users table
@@ -128,7 +171,7 @@ Follow this order unless instructed otherwise:
 8. Register endpoint
 9. Login endpoint
 10. /auth/me endpoint
-11. Tests for auth
+11. Auth tests
 
 After auth works, continue with:
 
@@ -188,13 +231,15 @@ Prefer readable test names such as:
 - test_login_invalid_password_fails
 - test_get_current_user_success
 
-## Safety Rules
+## Git Rules
 
 Do not commit real secrets.
 
 Do not remove .env from .gitignore.
 
 Do not ignore uv.lock.
+
+Migration files should be committed.
 
 Do not delete existing working setup unless necessary.
 
