@@ -1,5 +1,5 @@
-from jose import JWTError
 from fastapi import HTTPException, status
+from jose import JWTError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
@@ -9,7 +9,11 @@ from app.core.security import (
     verify_password,
 )
 from app.models.user import User
-from app.repositories.user_repository import create_user, get_user_by_email, get_user_by_id
+from app.repositories.user_repository import (
+    create_user,
+    get_user_by_email,
+    get_user_by_id,
+)
 from app.schemas.auth import Token, UserCreate, UserLogin
 
 
@@ -60,7 +64,14 @@ async def authenticate_user(db: AsyncSession, login_data: UserLogin) -> User:
 
 async def login_user(db: AsyncSession, login_data: UserLogin) -> Token:
     user = await authenticate_user(db, login_data)
-    access_token = create_access_token(subject=str(user.id))
+    access_token = create_access_token(
+        subject=str(user.id),
+        extra_claims={
+            "email": user.email,
+            "full_name": user.full_name,
+            "is_active": user.is_active,
+        },
+    )
 
     return Token(access_token=access_token)
 

@@ -20,16 +20,22 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(
     subject: str,
+    extra_claims: dict[str, Any] | None = None,
     expires_delta: timedelta | None = None,
 ) -> str:
     if expires_delta is None:
         expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
 
+    issued_at = datetime.utcnow()
     expire = datetime.utcnow() + expires_delta
     payload: dict[str, Any] = {
         "sub": subject,
+        "iat": issued_at,
         "exp": expire,
     }
+
+    if extra_claims is not None:
+        payload.update(extra_claims)
 
     return jwt.encode(
         payload,
