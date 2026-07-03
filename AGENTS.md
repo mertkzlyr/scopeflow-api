@@ -100,10 +100,24 @@ The project already has:
 - async SQLAlchemy database connection in app/db/database.py
 - Base model class in app/db/base.py
 - Alembic initialized and connected to app.db.base.Base.metadata
+- alembic/env.py imports app.models so autogenerate can discover models
+- alembic/env.py converts postgresql+asyncpg:// to postgresql+psycopg:// for migration execution
 - /health endpoint working
 - /health/db endpoint working with AsyncSession
+- User model in app/models/user.py
+- users table migration created and applied
+- Auth schemas in app/schemas/auth.py
+- User repository in app/repositories/user_repository.py
+- Security utilities for password hashing and JWT in app/core/security.py
+- Auth service in app/services/auth_service.py
+- Auth router in app/routers/auth_router.py
+- /auth/register endpoint working
+- /auth/login endpoint working
+- /auth/me endpoint working with HTTP Bearer auth in Swagger
+- JWT access tokens include sub, email, full_name, is_active, iat, and exp claims
+- Auth tests in tests/test_auth.py passing
 
-Continue from the next step: create the User model and first Alembic migration.
+Continue from the next step: create the Organization and OrganizationMember models and the next Alembic migration.
 
 ## Coding Style
 
@@ -161,23 +175,18 @@ Build incrementally.
 
 Next steps:
 
-1. User model
-2. Alembic migration for users table
-3. Auth schemas
-4. User repository
-5. Security utilities for password hashing and JWT
-6. Auth service
-7. Auth router
-8. Register endpoint
-9. Login endpoint
-10. /auth/me endpoint
-11. Auth tests
+1. Organization model
+2. OrganizationMember model
+3. Role enum
+4. Alembic migration for organizations and organization_members tables
+5. Organization schemas
+6. Organization repository
+7. Organization service
+8. Organization router
+9. Organization endpoints
 
-After auth works, continue with:
+After organizations work, continue with:
 
-- organizations
-- organization_members
-- roles
 - projects
 - project_members
 - tasks
