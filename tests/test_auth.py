@@ -9,13 +9,6 @@ from jose import jwt
 from app.core.config import settings
 from app.main import app
 
-
-@pytest.fixture(scope="module")
-def client() -> Generator[TestClient, None, None]:
-    with TestClient(app) as test_client:
-        yield test_client
-
-
 def delete_user_by_email(email: str) -> None:
     database_url = settings.DATABASE_URL.replace(
         "postgresql+asyncpg://",
