@@ -230,3 +230,197 @@ def test_list_organization_members_success(client: TestClient):
     finally:
         delete_organization_by_name(organization_name)
         delete_user_by_email(email)
+
+def test_add_organization_member_success(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    organization_name = unique_organization_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        register_and_login_user(client, member_email)
+
+        create_response = client.post(
+            "/organizations",
+            json={"name": organization_name},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert create_response.status_code == 201
+
+        organization_id = create_response.json()["id"]
+
+        add_member_response = client.post(
+            f"/organizations/{organization_id}/members",
+            json={
+                "email": member_email,
+                "role": "MEMBER",
+            },
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert add_member_response.status_code == 201
+
+        data = add_member_response.json()
+
+        assert data["organization_id"] == organization_id
+        assert data["role"] == "MEMBER"
+
+        members_response = client.get(
+            f"/organizations/{organization_id}/members",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert members_response.status_code == 200
+
+        members = members_response.json()
+
+        assert len(members) == 2
+        assert any(member["role"] == "OWNER" for member in members)
+        assert any(member["role"] == "MEMBER" for member in members)
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)
+
+
+def test_add_organization_member_duplicate_fails(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    organization_name = unique_organization_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        register_and_login_user(client, member_email)
+
+        create_response = client.post(
+            "/organizations",
+            json={"name": organization_name},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert create_response.status_code == 201
+
+        organization_id = create_response.json()["id"]
+
+        first_response = client.post(
+            f"/organizations/{organization_id}/members",
+            json={
+                "email": member_email,
+                "role": "MEMBER",
+            },
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        second_response = client.post(
+            f"/organizations/{organization_id}/members",
+            json={
+                "email": member_email,
+                "role": "MEMBER",
+            },
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert first_response.status_code == 201
+        assert second_response.status_code == 400
+        assert (
+            second_response.json()["detail"]
+            == "User is already a member of this organization."
+        )
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)
+
+
+def test_regular_member_cannot_add_organization_member(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    third_user_email = unique_email()
+    organization_name = unique_organization_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        member_token = register_and_login_user(client, member_email)
+        register_and_login_user(client, third_user_email)
+
+        create_response = client.post(
+            "/organizations",
+            json={"name": organization_name},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert create_response.status_code == 201
+
+        organization_id = create_response.json()["id"]
+
+        add_member_response = client.post(
+            f"/organizations/{organization_id}/members",
+            json={
+                "email": member_email,
+                "role": "MEMBER",
+            },
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert add_member_response.status_code == 201
+
+        forbidden_response = client.post(
+            f"/organizations/{organization_id}/members",
+            json={
+                "email": third_user_email,
+                "role": "VIEWER",
+            },
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
+
+        assert forbidden_response.status_code == 403
+        assert (
+            forbidden_response.json()["detail"]
+            == "You do not have permission to manage organization members."
+        )
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)
+        delete_user_by_email(third_user_email)
+
+
+def test_add_owner_role_as_member_fails(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    organization_name = unique_organization_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        register_and_login_user(client, member_email)
+
+        create_response = client.post(
+            "/organizations",
+            json={"name": organization_name},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert create_response.status_code == 201
+
+        organization_id = create_response.json()["id"]
+
+        response = client.post(
+            f"/organizations/{organization_id}/members",
+            json={
+                "email": member_email,
+                "role": "OWNER",
+            },
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "New members cannot be added as OWNER."
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)

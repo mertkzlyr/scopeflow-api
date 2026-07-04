@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, EmailStr
 
 from app.enums.organization_role import OrganizationRole
 
@@ -14,6 +14,10 @@ class OrganizationResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class OrganizationMemberCreate(BaseModel):
+    email: EmailStr
+    role: OrganizationRole
 
 
 class OrganizationMemberResponse(BaseModel):

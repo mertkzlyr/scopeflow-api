@@ -1,5 +1,5 @@
 from app.schemas.auth import Token, UserCreate, UserLogin, UserResponse
-from app.schemas.organization import OrganizationCreate, OrganizationResponse, OrganizationMemberResponse
+from app.schemas.organization import OrganizationCreate, OrganizationResponse, OrganizationMemberResponse, OrganizationMemberCreate
 
 __all__ = ["Token", 
            "UserCreate", 
@@ -7,5 +7,6 @@ __all__ = ["Token",
            "UserResponse", 
            "OrganizationCreate", 
            "OrganizationResponse", 
-           "OrganizationMemberResponse"
+           "OrganizationMemberResponse",
+           "OrganizationMemberCreate"
 ]

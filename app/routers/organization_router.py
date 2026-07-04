@@ -7,6 +7,7 @@ from app.schemas.organization import (
     OrganizationCreate,
     OrganizationMemberResponse,
     OrganizationResponse,
+    OrganizationMemberCreate,
 )
 from app.services.auth_service import get_current_user
 from app.services.organization_service import (
@@ -14,6 +15,7 @@ from app.services.organization_service import (
     get_user_organization,
     list_organization_members_for_user,
     list_user_organizations,
+    add_organization_member_for_user,
 )
 
 router = APIRouter(
@@ -82,4 +84,24 @@ async def list_organization_members(
         db=db,
         current_user=current_user,
         organization_id=organization_id,
+    )
+
+@router.post(
+    "/{organization_id}/members",
+    response_model=OrganizationMemberResponse,
+    status_code=201,
+)
+async def add_organization_member(
+    organization_id: int,
+    member_data: OrganizationMemberCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+):
+    current_user = await get_current_user(db, credentials.credentials)
+
+    return await add_organization_member_for_user(
+        db=db,
+        current_user=current_user,
+        organization_id=organization_id,
+        member_data=member_data,
     )
