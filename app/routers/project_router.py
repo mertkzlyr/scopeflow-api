@@ -7,6 +7,7 @@ from app.schemas.project import (
     ProjectCreate,
     ProjectMemberResponse,
     ProjectResponse,
+    ProjectMemberCreate
 )
 from app.services.auth_service import get_current_user
 from app.services.project_service import (
@@ -14,6 +15,7 @@ from app.services.project_service import (
     get_project_for_user,
     list_project_members_for_user,
     list_projects_for_user,
+    add_project_member_for_user,
 )
 
 router = APIRouter(
@@ -90,4 +92,26 @@ async def list_project_members(
         current_user=current_user,
         organization_id=organization_id,
         project_id=project_id,
+    )
+
+@router.post(
+    "/{project_id}/members",
+    response_model=ProjectMemberResponse,
+    status_code=201,
+)
+async def add_project_member(
+    organization_id: int,
+    project_id: int,
+    member_data: ProjectMemberCreate,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+):
+    current_user = await get_current_user(db, credentials.credentials)
+
+    return await add_project_member_for_user(
+        db=db,
+        current_user=current_user,
+        organization_id=organization_id,
+        project_id=project_id,
+        member_data=member_data,
     )

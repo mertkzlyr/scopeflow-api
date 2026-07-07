@@ -85,6 +85,25 @@ def create_organization(
 
     return response.json()["id"]
 
+def create_project(
+    client: TestClient,
+    token: str,
+    organization_id: int,
+    project_name: str,
+) -> int:
+    response = client.post(
+        f"/organizations/{organization_id}/projects",
+        json={
+            "name": project_name,
+            "description": None,
+        },
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
+
+    return response.json()["id"]
+
 
 def add_organization_member(
     client: TestClient,
@@ -315,3 +334,220 @@ def test_list_project_members_success(client: TestClient):
     finally:
         delete_organization_by_name(organization_name)
         delete_user_by_email(owner_email)
+
+def test_add_project_member_success(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        register_and_login_user(client, member_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=member_email,
+            role="MEMBER",
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        response = client.post(
+            f"/organizations/{organization_id}/projects/{project_id}/members",
+            json={"email": member_email},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 201
+
+        data = response.json()
+
+        assert data["project_id"] == project_id
+        assert data["user_id"]
+
+        members_response = client.get(
+            f"/organizations/{organization_id}/projects/{project_id}/members",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert members_response.status_code == 200
+
+        members = members_response.json()
+
+        assert len(members) == 2
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)
+
+
+def test_add_project_member_requires_organization_membership(client: TestClient):
+    owner_email = unique_email()
+    outsider_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        register_and_login_user(client, outsider_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        response = client.post(
+            f"/organizations/{organization_id}/projects/{project_id}/members",
+            json={"email": outsider_email},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 400
+        assert (
+            response.json()["detail"]
+            == "User must be an organization member before being added to a project."
+        )
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(outsider_email)
+
+
+def test_add_project_member_duplicate_fails(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        register_and_login_user(client, member_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=member_email,
+            role="MEMBER",
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        first_response = client.post(
+            f"/organizations/{organization_id}/projects/{project_id}/members",
+            json={"email": member_email},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        second_response = client.post(
+            f"/organizations/{organization_id}/projects/{project_id}/members",
+            json={"email": member_email},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert first_response.status_code == 201
+        assert second_response.status_code == 400
+        assert (
+            second_response.json()["detail"]
+            == "User is already a member of this project."
+        )
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)
+
+
+def test_regular_member_cannot_add_project_member(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    third_user_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        member_token = register_and_login_user(client, member_email)
+        register_and_login_user(client, third_user_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=member_email,
+            role="MEMBER",
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=third_user_email,
+            role="MEMBER",
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        response = client.post(
+            f"/organizations/{organization_id}/projects/{project_id}/members",
+            json={"email": third_user_email},
+            headers={"Authorization": f"Bearer {member_token}"},
+        )
+
+        assert response.status_code == 403
+        assert (
+            response.json()["detail"]
+            == "You do not have permission to manage project members."
+        )
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)
+        delete_user_by_email(third_user_email)

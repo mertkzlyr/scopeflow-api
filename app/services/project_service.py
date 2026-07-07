@@ -14,10 +14,12 @@ from app.repositories.project_repository import (
     create_project,
     create_project_member,
     get_project_by_id,
+    get_project_member,
     get_project_members,
     get_projects_for_organization,
 )
-from app.schemas.project import ProjectCreate
+from app.repositories.user_repository import get_user_by_email
+from app.schemas.project import ProjectCreate, ProjectMemberCreate
 
 
 async def get_current_user_organization_membership(
@@ -155,3 +157,80 @@ async def list_project_members_for_user(
         db=db,
         project_id=project.id,
     )
+
+async def add_project_member_for_user(
+    db: AsyncSession,
+    current_user: User,
+    organization_id: int,
+    project_id: int,
+    member_data: ProjectMemberCreate,
+) -> ProjectMember:
+    current_user_organization_membership = await get_current_user_organization_membership(
+        db=db,
+        current_user=current_user,
+        organization_id=organization_id,
+    )
+
+    allowed_roles = [
+        OrganizationRole.OWNER,
+        OrganizationRole.ADMIN,
+    ]
+
+    if current_user_organization_membership.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to manage project members.",
+        )
+
+    project = await get_project_for_user(
+        db=db,
+        current_user=current_user,
+        organization_id=organization_id,
+        project_id=project_id,
+    )
+
+    user_to_add = await get_user_by_email(
+        db=db,
+        email=str(member_data.email),
+    )
+
+    if user_to_add is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found.",
+        )
+
+    user_to_add_organization_membership = await get_organization_member(
+        db=db,
+        organization_id=organization_id,
+        user_id=user_to_add.id,
+    )
+
+    if user_to_add_organization_membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User must be an organization member before being added to a project.",
+        )
+
+    existing_project_membership = await get_project_member(
+        db=db,
+        project_id=project.id,
+        user_id=user_to_add.id,
+    )
+
+    if existing_project_membership is not None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="User is already a member of this project.",
+        )
+
+    project_member = await create_project_member(
+        db=db,
+        project_id=project.id,
+        user_id=user_to_add.id,
+    )
+
+    await db.commit()
+    await db.refresh(project_member)
+
+    return project_member
