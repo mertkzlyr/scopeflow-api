@@ -5,14 +5,16 @@ from app.enums.organization_role import OrganizationRole
 from app.enums.task_status import TaskStatus
 from app.models.task import Task
 from app.models.user import User
+from app.repositories.project_repository import get_project_member
 from app.repositories.task_repository import (
     create_task,
     get_task_by_id,
     get_tasks_for_project,
+    update_task_assignee,
     update_task_status,
-    update_task_assignee
 )
-from app.schemas.task import TaskCreate, TaskStatusUpdate, TaskAssign
+from app.repositories.user_repository import get_user_by_email
+from app.schemas.task import TaskAssign, TaskCreate, TaskStatusUpdate
 from app.services.project_service import (
     get_current_user_organization_membership,
     get_project_for_user,
