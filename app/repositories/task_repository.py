@@ -66,3 +66,14 @@ async def update_task_status(
     await db.flush()
 
     return task
+
+async def update_task_assignee(
+    db: AsyncSession,
+    task: Task,
+    assigned_to_user_id: int,
+) -> Task:
+    task.assigned_to_user_id = assigned_to_user_id
+
+    await db.flush()
+
+    return task

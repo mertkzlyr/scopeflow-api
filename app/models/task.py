@@ -26,6 +26,12 @@ class Task(Base):
         nullable=True,
     )
 
+    assigned_to_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
     title = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
 
@@ -50,10 +56,19 @@ class Task(Base):
     )
 
     project = relationship("Project")
-    created_by_user = relationship("User")
+
+    created_by_user = relationship(
+        "User",
+        foreign_keys=[created_by_user_id],
+    )
+
+    assigned_to_user = relationship(
+        "User",
+        foreign_keys=[assigned_to_user_id],
+    )
 
     comments = relationship(
-    "Comment",
-    back_populates="task",
-    cascade="all, delete-orphan",
+        "Comment",
+        back_populates="task",
+        cascade="all, delete-orphan",
     )

@@ -25,7 +25,8 @@ from app.services.task_service import (
     create_task_for_user,
     list_tasks_for_user,
     get_task_for_user,
-    update_task_status_for_user
+    update_task_status_for_user,
+    assign_task_for_user
 )
 
 from app.services.comment_service import (
@@ -51,6 +52,7 @@ __all__ = ["authenticate_user",
             "list_tasks_for_user",
             "get_task_for_user",
             "update_task_status_for_user",
+            "assign_task_for_user",
             "create_comment_for_user",
             "list_comments_for_user"
 ]
