@@ -3,12 +3,13 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
-from app.schemas.task import TaskCreate, TaskResponse
+from app.schemas.task import TaskCreate, TaskResponse, TaskStatusUpdate
 from app.services.auth_service import get_current_user
 from app.services.task_service import (
     create_task_for_user,
     get_task_for_user,
     list_tasks_for_user,
+    update_task_status_for_user
 )
 
 router = APIRouter(
@@ -71,4 +72,24 @@ async def get_task(
         organization_id=organization_id,
         project_id=project_id,
         task_id=task_id,
+    )
+
+@router.patch("/{task_id}/status", response_model=TaskResponse)
+async def update_task_status(
+    organization_id: int,
+    project_id: int,
+    task_id: int,
+    status_data: TaskStatusUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+):
+    current_user = await get_current_user(db, credentials.credentials)
+
+    return await update_task_status_for_user(
+        db=db,
+        current_user=current_user,
+        organization_id=organization_id,
+        project_id=project_id,
+        task_id=task_id,
+        status_data=status_data,
     )

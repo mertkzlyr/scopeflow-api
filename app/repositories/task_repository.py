@@ -55,3 +55,14 @@ async def get_task_by_id(
     )
 
     return result.scalar_one_or_none()
+
+async def update_task_status(
+    db: AsyncSession,
+    task: Task,
+    status: TaskStatus,
+) -> Task:
+    task.status = status
+
+    await db.flush()
+
+    return task

@@ -11,6 +11,9 @@ class TaskCreate(BaseModel):
     description: str | None = Field(default=None, max_length=5000)
     scope_category: ScopeCategory = ScopeCategory.ORIGINAL_SCOPE
 
+class TaskStatusUpdate(BaseModel):
+    status: TaskStatus
+
 
 class TaskResponse(BaseModel):
     id: int
