@@ -21,6 +21,12 @@ from app.services.project_service import (
     list_project_members_for_user
 )
 
+from app.services.task_service import (
+    create_task_for_user,
+    list_tasks_for_user,
+    get_task_for_user
+)
+
 __all__ = ["authenticate_user", 
            "get_current_user", 
            "login_user", 
@@ -34,5 +40,8 @@ __all__ = ["authenticate_user",
             "create_project_for_user",
             "list_projects_for_user",
             "get_project_for_user",
-            "list_project_members_for_user"
+            "list_project_members_for_user",
+            "create_task_for_user",
+            "list_tasks_for_user",
+            "get_task_for_user"
 ]
