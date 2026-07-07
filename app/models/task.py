@@ -51,3 +51,9 @@ class Task(Base):
 
     project = relationship("Project")
     created_by_user = relationship("User")
+
+    comments = relationship(
+    "Comment",
+    back_populates="task",
+    cascade="all, delete-orphan",
+    )
