@@ -1,0 +1,10 @@
+from enum import Enum
+
+
+class ScopeCategory(str, Enum):
+    ORIGINAL_SCOPE = "ORIGINAL_SCOPE"
+    CHANGE_REQUEST = "CHANGE_REQUEST"
+    BUG_FIX = "BUG_FIX"
+    REVISION = "REVISION"
+    OUT_OF_SCOPE = "OUT_OF_SCOPE"
+    BILLABLE_EXTRA = "BILLABLE_EXTRA"

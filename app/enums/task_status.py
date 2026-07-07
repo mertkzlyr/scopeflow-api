@@ -1,0 +1,11 @@
+from enum import Enum
+
+
+class TaskStatus(str, Enum):
+    TODO = "TODO"
+    IN_PROGRESS = "IN_PROGRESS"
+    IN_REVIEW = "IN_REVIEW"
+    CLIENT_REVIEW = "CLIENT_REVIEW"
+    APPROVED = "APPROVED"
+    REVISION_REQUESTED = "REVISION_REQUESTED"
+    CANCELLED = "CANCELLED"
