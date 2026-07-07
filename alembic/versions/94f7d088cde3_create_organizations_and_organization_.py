@@ -34,7 +34,7 @@ def upgrade() -> None:
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('organization_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
-    sa.Column('role', sa.Enum('OWNER', 'ADMIN', 'MEMBER', 'ClIENT', 'VIEWER', name='organization_role'), nullable=False),
+    sa.Column('role', sa.Enum('OWNER', 'ADMIN', 'MEMBER', 'CLIENT', 'VIEWER', name='organization_role'), nullable=False),
     sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.Column('updated_at', sa.DateTime(), nullable=False),
     sa.ForeignKeyConstraint(['organization_id'], ['organizations.id'], ondelete='CASCADE'),
