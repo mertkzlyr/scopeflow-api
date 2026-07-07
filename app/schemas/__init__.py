@@ -2,6 +2,7 @@ from app.schemas.auth import Token, UserCreate, UserLogin, UserResponse
 from app.schemas.organization import OrganizationCreate, OrganizationResponse, OrganizationMemberResponse, OrganizationMemberCreate
 from app.schemas.project import ProjectCreate, ProjectResponse, ProjectMemberResponse
 from app.schemas.task import TaskCreate, TaskResponse, TaskStatusUpdate
+from app.schemas.comment import CommentCreate, CommentResponse
 
 __all__ = ["Token", 
            "UserCreate", 
@@ -16,5 +17,7 @@ __all__ = ["Token",
            "ProjectMemberResponse",
            "TaskCreate",
            "TaskResponse",
-           "TaskStatusUpdate"
+           "TaskStatusUpdate",
+           "CommentCreate",
+           "CommentResponse"
 ]

@@ -6,7 +6,8 @@ from app.routers import (
     health_router, 
     organization_router, 
     project_router,
-    task_router
+    task_router,
+    comment_router
 )
 
 
@@ -21,3 +22,4 @@ app.include_router(health_router.router)
 app.include_router(organization_router.router)
 app.include_router(project_router.router)
 app.include_router(task_router.router)
+app.include_router(comment_router.router)
