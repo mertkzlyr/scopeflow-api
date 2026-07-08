@@ -128,6 +128,23 @@ def create_project(
 
     return response.json()["id"]
 
+def add_project_member(
+    client: TestClient,
+    owner_token: str,
+    organization_id: int,
+    project_id: int,
+    email: str,
+) -> int:
+    response = client.post(
+        f"/organizations/{organization_id}/projects/{project_id}/members",
+        json={"email": email},
+        headers={"Authorization": f"Bearer {owner_token}"},
+    )
+
+    assert response.status_code == 201
+
+    return response.json()["user_id"]
+
 
 def create_task(
     client: TestClient,
@@ -286,6 +303,15 @@ def test_client_can_create_comment(client: TestClient):
             organization_id=organization_id,
             project_name=project_name,
         )
+
+        add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=client_email,
+        )
+
         task_id = create_task(
             client=client,
             token=owner_token,
@@ -340,6 +366,15 @@ def test_viewer_cannot_create_comment(client: TestClient):
             organization_id=organization_id,
             project_name=project_name,
         )
+
+        add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=viewer_email,
+        )
+
         task_id = create_task(
             client=client,
             token=owner_token,
@@ -395,6 +430,15 @@ def test_viewer_can_list_comments(client: TestClient):
             organization_id=organization_id,
             project_name=project_name,
         )
+
+        add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=viewer_email,
+        )
+
         task_id = create_task(
             client=client,
             token=owner_token,

@@ -95,3 +95,20 @@ async def get_project_members(
     )
 
     return list(result.scalars().all())
+
+async def get_projects_for_user_in_organization(
+    db: AsyncSession,
+    organization_id: int,
+    user_id: int,
+) -> list[Project]:
+    result = await db.execute(
+        select(Project)
+        .join(ProjectMember)
+        .where(
+            Project.organization_id == organization_id,
+            ProjectMember.user_id == user_id,
+        )
+        .order_by(Project.id)
+    )
+
+    return list(result.scalars().all())

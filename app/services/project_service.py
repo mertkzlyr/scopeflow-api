@@ -17,6 +17,7 @@ from app.repositories.project_repository import (
     get_project_member,
     get_project_members,
     get_projects_for_organization,
+    get_projects_for_user_in_organization
 )
 from app.repositories.user_repository import get_user_by_email
 from app.schemas.project import ProjectCreate, ProjectMemberCreate
@@ -53,6 +54,12 @@ async def get_current_user_organization_membership(
         )
 
     return organization_member
+
+def user_can_access_all_projects(role: OrganizationRole) -> bool:
+    return role in [
+        OrganizationRole.OWNER,
+        OrganizationRole.ADMIN,
+    ]
 
 
 async def create_project_for_user(
@@ -115,15 +122,22 @@ async def list_projects_for_user(
     current_user: User,
     organization_id: int,
 ) -> list[Project]:
-    await get_current_user_organization_membership(
+    organization_member = await get_current_user_organization_membership(
         db=db,
         current_user=current_user,
         organization_id=organization_id,
     )
 
-    return await get_projects_for_organization(
+    if user_can_access_all_projects(organization_member.role):
+        return await get_projects_for_organization(
+            db=db,
+            organization_id=organization_id,
+        )
+
+    return await get_projects_for_user_in_organization(
         db=db,
         organization_id=organization_id,
+        user_id=current_user.id,
     )
 
 
@@ -133,7 +147,7 @@ async def get_project_for_user(
     organization_id: int,
     project_id: int,
 ) -> Project:
-    await get_current_user_organization_membership(
+    organization_member = await get_current_user_organization_membership(
         db=db,
         current_user=current_user,
         organization_id=organization_id,
@@ -146,6 +160,21 @@ async def get_project_for_user(
     )
 
     if project is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found.",
+        )
+
+    if user_can_access_all_projects(organization_member.role):
+        return project
+
+    project_member = await get_project_member(
+        db=db,
+        project_id=project.id,
+        user_id=current_user.id,
+    )
+
+    if project_member is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found.",

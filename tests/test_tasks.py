@@ -541,6 +541,14 @@ def test_client_can_approve_task_in_client_review(client: TestClient):
             project_name=project_name,
         )
 
+        add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=client_email,
+        )
+
         task_id = create_task(
             client=client,
             token=owner_token,
@@ -607,6 +615,14 @@ def test_member_cannot_approve_task_in_client_review(client: TestClient):
             token=owner_token,
             organization_id=organization_id,
             project_name=project_name,
+        )
+
+        add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=member_email,
         )
 
         task_id = create_task(
