@@ -7,7 +7,8 @@ from app.routers import (
     organization_router, 
     project_router,
     task_router,
-    comment_router
+    comment_router,
+    audit_log_router,
 )
 
 
@@ -23,3 +24,4 @@ app.include_router(organization_router.router)
 app.include_router(project_router.router)
 app.include_router(task_router.router)
 app.include_router(comment_router.router)
+app.include_router(audit_log_router.router)
