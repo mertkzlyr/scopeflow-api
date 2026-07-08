@@ -7,6 +7,7 @@ from app.models.project import Project
 from app.models.project_member import ProjectMember
 from app.models.task import Task
 from app.models.comment import Comment
+from app.models.audit_log import AuditLog
 
 __all__ = [
     "User",
@@ -15,5 +16,6 @@ __all__ = [
     "Project",
     "ProjectMember",
     "Task",
-    "Comment"
+    "Comment",
+    "AuditLog"
 ]
