@@ -15,6 +15,8 @@ from app.repositories.organization_repository import (
 )
 from app.repositories.user_repository import get_user_by_email
 from app.schemas.organization import OrganizationCreate, OrganizationMemberCreate
+from app.enums.audit_action import AuditAction
+from app.services.audit_log_service import record_audit_log
 
 
 async def create_organization_for_user(
@@ -33,6 +35,18 @@ async def create_organization_for_user(
         user_id=current_user.id,
         role=OrganizationRole.OWNER,
     )
+
+    await record_audit_log(
+    db=db,
+    organization_id=organization.id,
+    actor_user_id=current_user.id,
+    action=AuditAction.ORGANIZATION_CREATED,
+    entity_type="organization",
+    entity_id=organization.id,
+    metadata_json={
+        "organization_name": organization.name,
+    },
+)
 
     await db.commit()
     await db.refresh(organization)
@@ -172,6 +186,20 @@ async def add_organization_member_for_user(
         user_id=user_to_add.id,
         role=member_data.role,
     )
+
+    await record_audit_log(
+    db=db,
+    organization_id=organization_id,
+    actor_user_id=current_user.id,
+    action=AuditAction.ORGANIZATION_MEMBER_ADDED,
+    entity_type="organization_member",
+    entity_id=organization_member.id,
+    metadata_json={
+        "added_user_id": user_to_add.id,
+        "added_user_email": user_to_add.email,
+        "role": member_data.role.value,
+    },
+)
 
     await db.commit()
     await db.refresh(organization_member)

@@ -12,6 +12,8 @@ from app.schemas.comment import CommentCreate
 from app.services.project_service import get_current_user_organization_membership
 from app.services.task_service import get_task_for_user
 
+from app.enums.audit_action import AuditAction
+from app.services.audit_log_service import record_audit_log
 
 async def create_comment_for_user(
     db: AsyncSession,
@@ -54,6 +56,19 @@ async def create_comment_for_user(
         author_user_id=current_user.id,
         body=comment_data.body,
     )
+
+    await record_audit_log(
+    db=db,
+    organization_id=organization_id,
+    actor_user_id=current_user.id,
+    action=AuditAction.COMMENT_CREATED,
+    entity_type="comment",
+    entity_id=comment.id,
+    metadata_json={
+        "project_id": project_id,
+        "task_id": task.id,
+    },
+)
 
     await db.commit()
     await db.refresh(comment)

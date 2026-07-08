@@ -20,6 +20,8 @@ from app.services.project_service import (
     get_project_for_user,
 )
 
+from app.enums.audit_action import AuditAction
+from app.services.audit_log_service import record_audit_log
 
 async def create_task_for_user(
     db: AsyncSession,
@@ -60,6 +62,20 @@ async def create_task_for_user(
         title=task_data.title,
         description=task_data.description,
         scope_category=task_data.scope_category,
+    )
+
+    await record_audit_log(
+        db=db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action=AuditAction.TASK_CREATED,
+        entity_type="task",
+        entity_id=task.id,
+        metadata_json={
+            "project_id": project_id,
+            "task_title": task.title,
+            "scope_category": task.scope_category.value,
+        },
     )
 
     await db.commit()
@@ -159,10 +175,26 @@ async def update_task_status_for_user(
         new_status=status_data.status,
     )
 
+    old_status = task.status
+
     updated_task = await update_task_status(
         db=db,
         task=task,
         status=status_data.status,
+    )
+
+    await record_audit_log(
+        db=db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action=AuditAction.TASK_STATUS_CHANGED,
+        entity_type="task",
+        entity_id=task.id,
+        metadata_json={
+            "project_id": project_id,
+            "old_status": old_status.value,
+            "new_status": status_data.status.value,
+        },
     )
 
     await db.commit()
@@ -242,6 +274,20 @@ async def assign_task_for_user(
         db=db,
         task=task,
         assigned_to_user_id=user_to_assign.id,
+    )
+
+    await record_audit_log(
+        db=db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action=AuditAction.TASK_ASSIGNED,
+        entity_type="task",
+        entity_id=task.id,
+        metadata_json={
+            "project_id": project_id,
+            "assigned_to_user_id": user_to_assign.id,
+            "assigned_to_user_email": user_to_assign.email,
+        },
     )
 
     await db.commit()

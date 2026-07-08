@@ -21,6 +21,8 @@ from app.repositories.project_repository import (
 from app.repositories.user_repository import get_user_by_email
 from app.schemas.project import ProjectCreate, ProjectMemberCreate
 
+from app.enums.audit_action import AuditAction
+from app.services.audit_log_service import record_audit_log
 
 async def get_current_user_organization_membership(
     db: AsyncSession,
@@ -89,6 +91,18 @@ async def create_project_for_user(
         project_id=project.id,
         user_id=current_user.id,
     )
+
+    await record_audit_log(
+    db=db,
+    organization_id=organization_id,
+    actor_user_id=current_user.id,
+    action=AuditAction.PROJECT_CREATED,
+    entity_type="project",
+    entity_id=project.id,
+    metadata_json={
+        "project_name": project.name,
+    },
+)
 
     await db.commit()
     await db.refresh(project)
@@ -229,6 +243,20 @@ async def add_project_member_for_user(
         project_id=project.id,
         user_id=user_to_add.id,
     )
+
+    await record_audit_log(
+    db=db,
+    organization_id=organization_id,
+    actor_user_id=current_user.id,
+    action=AuditAction.PROJECT_MEMBER_ADDED,
+    entity_type="project_member",
+    entity_id=project_member.id,
+    metadata_json={
+        "project_id": project.id,
+        "added_user_id": user_to_add.id,
+        "added_user_email": user_to_add.email,
+    },
+)
 
     await db.commit()
     await db.refresh(project_member)
