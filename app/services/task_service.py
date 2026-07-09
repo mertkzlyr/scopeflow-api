@@ -18,7 +18,7 @@ from app.repositories.task_repository import (
     update_task
 )
 from app.repositories.user_repository import get_user_by_email
-from app.schemas.task import TaskAssign, TaskCreate, TaskStatusUpdate
+from app.schemas.task import TaskAssign, TaskCreate, TaskStatusUpdate, TaskUpdate
 from app.services.project_service import (
     get_current_user_organization_membership,
     get_project_for_user,
