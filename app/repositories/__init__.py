@@ -4,6 +4,7 @@ from app.repositories.project_repository import create_project, create_project_m
 from app.repositories.task_repository import create_task, get_tasks_for_project, get_task_by_id, update_task_status, update_task_assignee, update_task
 from app.repositories.comment_repository import create_comment, get_comments_for_task
 from app.repositories.audit_log_repository import create_audit_log, get_audit_logs_for_organization
+from app.repositories.report_repository import get_tasks_updated_in_period_for_projects
 
 __all__ = ["create_user", 
            "get_user_by_email", 
@@ -30,5 +31,6 @@ __all__ = ["create_user",
            "get_comments_for_task",
            "create_audit_log",
            "get_audit_logs_for_organization",
-           "get_projects_for_user_in_organization"
+           "get_projects_for_user_in_organization",
+           "get_tasks_updated_in_period_for_projects"
 ]

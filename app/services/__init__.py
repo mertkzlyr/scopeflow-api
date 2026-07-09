@@ -40,6 +40,10 @@ from app.services.audit_log_service import (
     list_audit_logs_for_user
 )
 
+from app.services.report_service import (
+    get_weekly_report_for_user
+)    
+
 __all__ = ["authenticate_user", 
            "get_current_user", 
            "login_user", 
@@ -63,5 +67,6 @@ __all__ = ["authenticate_user",
             "create_comment_for_user",
             "list_comments_for_user",
             "record_audit_log",
-            "list_audit_logs_for_user"
+            "list_audit_logs_for_user",
+            "get_weekly_report_for_user"
 ]

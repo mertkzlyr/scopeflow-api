@@ -9,6 +9,7 @@ from app.routers import (
     task_router,
     comment_router,
     audit_log_router,
+    report_router
 )
 
 
@@ -25,3 +26,4 @@ app.include_router(project_router.router)
 app.include_router(task_router.router)
 app.include_router(comment_router.router)
 app.include_router(audit_log_router.router)
+app.include_router(report_router.router)

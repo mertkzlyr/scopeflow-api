@@ -4,6 +4,7 @@ from app.schemas.project import ProjectCreate, ProjectResponse, ProjectMemberRes
 from app.schemas.task import TaskCreate, TaskResponse, TaskStatusUpdate, TaskAssign, TaskUpdate
 from app.schemas.comment import CommentCreate, CommentResponse
 from app.schemas.audit_log import AuditLogResponse
+from app.schemas.report import WeeklyProjectReport, WeeklyReportResponse
 
 __all__ = ["Token", 
            "UserCreate", 
@@ -24,5 +25,7 @@ __all__ = ["Token",
            "CommentCreate",
            "CommentResponse",
            "ProjectMemberCreate",
-           "AuditLogResponse"
+           "AuditLogResponse",
+           "WeeklyProjectReport",
+           "WeeklyReportResponse"
 ]
