@@ -34,12 +34,26 @@ async def create_task(
 async def get_tasks_for_project(
     db: AsyncSession,
     project_id: int,
+    status: TaskStatus | None = None,
+    scope_category: ScopeCategory | None = None,
+    assigned_to_user_id: int | None = None,
 ) -> list[Task]:
-    result = await db.execute(
-        select(Task)
-        .where(Task.project_id == project_id)
-        .order_by(Task.id)
-    )
+    statement = select(Task).where(Task.project_id == project_id)
+
+    if status is not None:
+        statement = statement.where(Task.status == status)
+
+    if scope_category is not None:
+        statement = statement.where(Task.scope_category == scope_category)
+
+    if assigned_to_user_id is not None:
+        statement = statement.where(
+            Task.assigned_to_user_id == assigned_to_user_id
+        )
+
+    statement = statement.order_by(Task.id)
+
+    result = await db.execute(statement)
 
     return list(result.scalars().all())
 

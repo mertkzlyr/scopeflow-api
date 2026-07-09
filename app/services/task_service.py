@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.enums.organization_role import OrganizationRole
 from app.enums.task_status import TaskStatus
+from app.enums.scope_category import ScopeCategory
 from app.models.task import Task
 from app.models.user import User
 from app.repositories.project_repository import get_project_member
@@ -92,6 +93,9 @@ async def list_tasks_for_user(
     current_user: User,
     organization_id: int,
     project_id: int,
+    status_filter: TaskStatus | None = None,
+    scope_category_filter: ScopeCategory | None = None,
+    assigned_to_user_id_filter: int | None = None,
 ) -> list[Task]:
     await get_project_for_user(
         db=db,
@@ -103,6 +107,9 @@ async def list_tasks_for_user(
     return await get_tasks_for_project(
         db=db,
         project_id=project_id,
+        status=status_filter,
+        scope_category=scope_category_filter,
+        assigned_to_user_id=assigned_to_user_id_filter,
     )
 
 

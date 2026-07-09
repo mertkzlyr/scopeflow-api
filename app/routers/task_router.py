@@ -4,6 +4,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.database import get_db
 from app.schemas.task import TaskCreate, TaskResponse, TaskStatusUpdate, TaskAssign, TaskUpdate
+from app.enums.scope_category import ScopeCategory
+from app.enums.task_status import TaskStatus
 from app.services.auth_service import get_current_user
 from app.services.task_service import (
     create_task_for_user,
@@ -45,6 +47,9 @@ async def create_task(
 async def list_tasks(
     organization_id: int,
     project_id: int,
+    status: TaskStatus | None = None,
+    scope_category: ScopeCategory | None = None,
+    assigned_to_user_id: int | None = None,
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: AsyncSession = Depends(get_db),
 ):
@@ -55,6 +60,9 @@ async def list_tasks(
         current_user=current_user,
         organization_id=organization_id,
         project_id=project_id,
+        status_filter=status,
+        scope_category_filter=scope_category,
+        assigned_to_user_id_filter=assigned_to_user_id,
     )
 
 

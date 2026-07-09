@@ -1095,3 +1095,276 @@ def test_update_task_writes_audit_log(client: TestClient):
     finally:
         delete_organization_by_name(organization_name)
         delete_user_by_email(owner_email)
+
+def test_list_tasks_filter_by_status(client: TestClient):
+    owner_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    first_task_title = unique_task_title()
+    second_task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        first_task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=first_task_title,
+        )
+
+        create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=second_task_title,
+        )
+
+        status_response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{first_task_id}/status",
+            json={"status": "IN_PROGRESS"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert status_response.status_code == 200
+
+        response = client.get(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks?status=IN_PROGRESS",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert len(data) == 1
+        assert data[0]["id"] == first_task_id
+        assert data[0]["status"] == "IN_PROGRESS"
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+
+def test_list_tasks_filter_by_scope_category(client: TestClient):
+    owner_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    bug_fix_task_title = unique_task_title()
+    original_scope_task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        bug_fix_task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=bug_fix_task_title,
+            scope_category="BUG_FIX",
+        )
+
+        create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=original_scope_task_title,
+            scope_category="ORIGINAL_SCOPE",
+        )
+
+        response = client.get(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks?scope_category=BUG_FIX",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert len(data) == 1
+        assert data[0]["id"] == bug_fix_task_id
+        assert data[0]["scope_category"] == "BUG_FIX"
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+
+def test_list_tasks_filter_by_assigned_to_user_id(client: TestClient):
+    owner_email = unique_email()
+    member_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    assigned_task_title = unique_task_title()
+    unassigned_task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        register_and_login_user(client, member_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=member_email,
+            role="MEMBER",
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        assigned_user_id = add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=member_email,
+        )
+
+        assigned_task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=assigned_task_title,
+        )
+
+        create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=unassigned_task_title,
+        )
+
+        assign_response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{assigned_task_id}/assignee",
+            json={"email": member_email},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert assign_response.status_code == 200
+
+        response = client.get(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks?assigned_to_user_id={assigned_user_id}",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert len(data) == 1
+        assert data[0]["id"] == assigned_task_id
+        assert data[0]["assigned_to_user_id"] == assigned_user_id
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(member_email)
+
+def test_list_tasks_filter_by_status_and_scope_category(client: TestClient):
+    owner_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    matching_task_title = unique_task_title()
+    non_matching_task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        matching_task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=matching_task_title,
+            scope_category="CHANGE_REQUEST",
+        )
+
+        non_matching_task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=non_matching_task_title,
+            scope_category="CHANGE_REQUEST",
+        )
+
+        status_response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{matching_task_id}/status",
+            json={"status": "IN_PROGRESS"},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert status_response.status_code == 200
+
+        response = client.get(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks?status=IN_PROGRESS&scope_category=CHANGE_REQUEST",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert len(data) == 1
+        assert data[0]["id"] == matching_task_id
+        assert data[0]["id"] != non_matching_task_id
+        assert data[0]["status"] == "IN_PROGRESS"
+        assert data[0]["scope_category"] == "CHANGE_REQUEST"
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
