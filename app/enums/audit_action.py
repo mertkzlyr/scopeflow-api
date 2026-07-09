@@ -11,5 +11,6 @@ class AuditAction(str, Enum):
     TASK_CREATED = "task_created"
     TASK_ASSIGNED = "task_assigned"
     TASK_STATUS_CHANGED = "task_status_changed"
+    TASK_UPDATED = "task_updated"
 
     COMMENT_CREATED = "comment_created"
