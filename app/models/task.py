@@ -32,6 +32,21 @@ class Task(Base):
         nullable=True,
     )
 
+    approved_by_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    revision_requested_by_user_id = Column(
+        Integer,
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+
+    approved_at = Column(DateTime, nullable=True)
+    revision_requested_at = Column(DateTime, nullable=True)
+
     title = Column(String, index=True, nullable=False)
     description = Column(Text, nullable=True)
 
@@ -71,4 +86,14 @@ class Task(Base):
         "Comment",
         back_populates="task",
         cascade="all, delete-orphan",
+    )
+
+    approved_by_user = relationship(
+        "User",
+        foreign_keys=[approved_by_user_id],
+    )
+
+    revision_requested_by_user = relationship(
+        "User",
+        foreign_keys=[revision_requested_by_user_id],
     )

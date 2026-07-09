@@ -1368,3 +1368,167 @@ def test_list_tasks_filter_by_status_and_scope_category(client: TestClient):
     finally:
         delete_organization_by_name(organization_name)
         delete_user_by_email(owner_email)
+
+def test_client_approval_sets_approval_details(client: TestClient):
+    owner_email = unique_email()
+    client_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        client_token = register_and_login_user(client, client_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=client_email,
+            role="CLIENT",
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        client_user_id = add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=client_email,
+        )
+
+        task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=task_title,
+        )
+
+        for next_status in [
+            "IN_PROGRESS",
+            "IN_REVIEW",
+            "CLIENT_REVIEW",
+        ]:
+            response = client.patch(
+                f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}/status",
+                json={"status": next_status},
+                headers={"Authorization": f"Bearer {owner_token}"},
+            )
+
+            assert response.status_code == 200
+
+        approve_response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}/status",
+            json={"status": "APPROVED"},
+            headers={"Authorization": f"Bearer {client_token}"},
+        )
+
+        assert approve_response.status_code == 200
+
+        data = approve_response.json()
+
+        assert data["status"] == "APPROVED"
+        assert data["approved_by_user_id"] == client_user_id
+        assert data["approved_at"] is not None
+        assert data["revision_requested_by_user_id"] is None
+        assert data["revision_requested_at"] is None
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(client_email)
+
+def test_client_revision_request_sets_revision_details(client: TestClient):
+    owner_email = unique_email()
+    client_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        client_token = register_and_login_user(client, client_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=client_email,
+            role="CLIENT",
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        client_user_id = add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=client_email,
+        )
+
+        task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=task_title,
+        )
+
+        for next_status in [
+            "IN_PROGRESS",
+            "IN_REVIEW",
+            "CLIENT_REVIEW",
+        ]:
+            response = client.patch(
+                f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}/status",
+                json={"status": next_status},
+                headers={"Authorization": f"Bearer {owner_token}"},
+            )
+
+            assert response.status_code == 200
+
+        revision_response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}/status",
+            json={"status": "REVISION_REQUESTED"},
+            headers={"Authorization": f"Bearer {client_token}"},
+        )
+
+        assert revision_response.status_code == 200
+
+        data = revision_response.json()
+
+        assert data["status"] == "REVISION_REQUESTED"
+        assert data["revision_requested_by_user_id"] == client_user_id
+        assert data["revision_requested_at"] is not None
+        assert data["approved_by_user_id"] is None
+        assert data["approved_at"] is None
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(client_email)

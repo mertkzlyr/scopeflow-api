@@ -301,6 +301,7 @@ async def update_task_status_for_user(
         db=db,
         task=task,
         status=status_data.status,
+        actor_user_id=current_user.id,
     )
 
     await record_audit_log(

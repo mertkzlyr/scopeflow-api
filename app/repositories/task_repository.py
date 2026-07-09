@@ -1,4 +1,5 @@
 from typing import Any
+from datetime import datetime
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,8 +77,17 @@ async def update_task_status(
     db: AsyncSession,
     task: Task,
     status: TaskStatus,
+    actor_user_id: int,
 ) -> Task:
     task.status = status
+
+    if status == TaskStatus.APPROVED:
+        task.approved_at = datetime.utcnow()
+        task.approved_by_user_id = actor_user_id
+
+    if status == TaskStatus.REVISION_REQUESTED:
+        task.revision_requested_at = datetime.utcnow()
+        task.revision_requested_by_user_id = actor_user_id
 
     await db.flush()
 

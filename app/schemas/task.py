@@ -31,6 +31,10 @@ class TaskResponse(BaseModel):
     description: str | None
     status: TaskStatus
     scope_category: ScopeCategory
+    approved_by_user_id: int | None
+    revision_requested_by_user_id: int | None
+    approved_at: datetime | None
+    revision_requested_at: datetime | None
     created_at: datetime
     updated_at: datetime
 
