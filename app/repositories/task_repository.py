@@ -1,3 +1,5 @@
+from typing import Any
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -73,6 +75,24 @@ async def update_task_assignee(
     assigned_to_user_id: int,
 ) -> Task:
     task.assigned_to_user_id = assigned_to_user_id
+
+    await db.flush()
+
+    return task
+
+async def update_task(
+    db: AsyncSession,
+    task: Task,
+    update_data: dict[str, Any],
+) -> Task:
+    if "title" in update_data:
+        task.title = update_data["title"]
+
+    if "description" in update_data:
+        task.description = update_data["description"]
+
+    if "scope_category" in update_data:
+        task.scope_category = update_data["scope_category"]
 
     await db.flush()
 

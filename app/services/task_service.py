@@ -1,3 +1,5 @@
+from typing import Any
+
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +14,7 @@ from app.repositories.task_repository import (
     get_tasks_for_project,
     update_task_assignee,
     update_task_status,
+    update_task
 )
 from app.repositories.user_repository import get_user_by_email
 from app.schemas.task import TaskAssign, TaskCreate, TaskStatusUpdate
@@ -130,6 +133,116 @@ async def get_task_for_user(
         )
 
     return task
+
+def build_task_update_audit_metadata(
+    task: Task,
+    update_data: dict[str, Any],
+    project_id: int,
+) -> dict[str, Any]:
+    changes: dict[str, Any] = {}
+
+    if "title" in update_data:
+        changes["title"] = {
+            "old": task.title,
+            "new": update_data["title"],
+        }
+
+    if "description" in update_data:
+        changes["description"] = {
+            "old": task.description,
+            "new": update_data["description"],
+        }
+
+    if "scope_category" in update_data:
+        changes["scope_category"] = {
+            "old": task.scope_category.value,
+            "new": update_data["scope_category"].value,
+        }
+
+    return {
+        "project_id": project_id,
+        "changes": changes,
+    }
+
+async def update_task_for_user(
+    db: AsyncSession,
+    current_user: User,
+    organization_id: int,
+    project_id: int,
+    task_id: int,
+    task_data: TaskUpdate,
+) -> Task:
+    organization_member = await get_current_user_organization_membership(
+        db=db,
+        current_user=current_user,
+        organization_id=organization_id,
+    )
+
+    allowed_roles = [
+        OrganizationRole.OWNER,
+        OrganizationRole.ADMIN,
+        OrganizationRole.MEMBER,
+    ]
+
+    if organization_member.role not in allowed_roles:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update tasks.",
+        )
+
+    await get_project_for_user(
+        db=db,
+        current_user=current_user,
+        organization_id=organization_id,
+        project_id=project_id,
+    )
+
+    task = await get_task_by_id(
+        db=db,
+        project_id=project_id,
+        task_id=task_id,
+    )
+
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found.",
+        )
+
+    update_data = task_data.model_dump(exclude_unset=True)
+
+    if not update_data:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="At least one field must be provided.",
+        )
+
+    audit_metadata = build_task_update_audit_metadata(
+        task=task,
+        update_data=update_data,
+        project_id=project_id,
+    )
+
+    updated_task = await update_task(
+        db=db,
+        task=task,
+        update_data=update_data,
+    )
+
+    await record_audit_log(
+        db=db,
+        organization_id=organization_id,
+        actor_user_id=current_user.id,
+        action=AuditAction.TASK_UPDATED,
+        entity_type="task",
+        entity_id=task.id,
+        metadata_json=audit_metadata,
+    )
+
+    await db.commit()
+    await db.refresh(updated_task)
+
+    return updated_task
 
 async def update_task_status_for_user(
     db: AsyncSession,

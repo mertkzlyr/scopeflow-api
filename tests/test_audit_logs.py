@@ -200,13 +200,13 @@ def test_owner_can_list_audit_logs(client: TestClient):
 
         actions = [log["action"] for log in data]
 
-        assert "organization_created" in actions
-        assert "project_created" in actions
-        assert "task_created" in actions
-        assert "task_status_changed" in actions
+        assert "ORGANIZATION_CREATED" in actions
+        assert "PROJECT_CREATED" in actions
+        assert "TASK_CREATED" in actions
+        assert "TASK_STATUS_CHANGED" in actions
 
         task_status_log = next(
-            log for log in data if log["action"] == "task_status_changed"
+            log for log in data if log["action"] == "TASK_STATUS_CHANGED"
         )
 
         assert task_status_log["metadata"]["old_status"] == "TODO"

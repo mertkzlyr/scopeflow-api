@@ -858,3 +858,240 @@ def test_client_cannot_assign_task(client: TestClient):
         delete_user_by_email(owner_email)
         delete_user_by_email(client_email)
         delete_user_by_email(member_email)
+
+def test_update_task_success(client: TestClient):
+    owner_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    task_title = unique_task_title()
+    updated_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=task_title,
+        )
+
+        response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}",
+            json={
+                "title": updated_title,
+                "description": "Updated task description.",
+                "scope_category": "CHANGE_REQUEST",
+            },
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 200
+
+        data = response.json()
+
+        assert data["id"] == task_id
+        assert data["title"] == updated_title
+        assert data["description"] == "Updated task description."
+        assert data["scope_category"] == "CHANGE_REQUEST"
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+
+
+def test_update_task_requires_at_least_one_field(client: TestClient):
+    owner_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=task_title,
+        )
+
+        response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}",
+            json={},
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert response.status_code == 400
+        assert response.json()["detail"] == "At least one field must be provided."
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+
+
+def test_client_cannot_update_task(client: TestClient):
+    owner_email = unique_email()
+    client_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    task_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+        client_token = register_and_login_user(client, client_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        add_organization_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            email=client_email,
+            role="CLIENT",
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        add_project_member(
+            client=client,
+            owner_token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            email=client_email,
+        )
+
+        task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=task_title,
+        )
+
+        response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}",
+            json={
+                "title": "Client should not update this.",
+            },
+            headers={"Authorization": f"Bearer {client_token}"},
+        )
+
+        assert response.status_code == 403
+        assert response.json()["detail"] == "You do not have permission to update tasks."
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
+        delete_user_by_email(client_email)
+
+
+def test_update_task_writes_audit_log(client: TestClient):
+    owner_email = unique_email()
+    organization_name = unique_organization_name()
+    project_name = unique_project_name()
+    task_title = unique_task_title()
+    updated_title = unique_task_title()
+
+    try:
+        owner_token = register_and_login_user(client, owner_email)
+
+        organization_id = create_organization(
+            client=client,
+            token=owner_token,
+            organization_name=organization_name,
+        )
+
+        project_id = create_project(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_name=project_name,
+        )
+
+        task_id = create_task(
+            client=client,
+            token=owner_token,
+            organization_id=organization_id,
+            project_id=project_id,
+            title=task_title,
+        )
+
+        update_response = client.patch(
+            f"/organizations/{organization_id}/projects/{project_id}/tasks/{task_id}",
+            json={
+                "title": updated_title,
+                "scope_category": "CHANGE_REQUEST",
+            },
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert update_response.status_code == 200
+
+        audit_response = client.get(
+            f"/organizations/{organization_id}/audit-logs",
+            headers={"Authorization": f"Bearer {owner_token}"},
+        )
+
+        assert audit_response.status_code == 200
+
+        logs = audit_response.json()
+
+        task_updated_log = next(
+            log for log in logs if log["action"] == "TASK_UPDATED"
+        )
+
+        assert task_updated_log["entity_type"] == "task"
+        assert task_updated_log["entity_id"] == task_id
+        assert task_updated_log["metadata"]["project_id"] == project_id
+        assert task_updated_log["metadata"]["changes"]["title"]["old"] == task_title
+        assert task_updated_log["metadata"]["changes"]["title"]["new"] == updated_title
+        assert (
+            task_updated_log["metadata"]["changes"]["scope_category"]["old"]
+            == "ORIGINAL_SCOPE"
+        )
+        assert (
+            task_updated_log["metadata"]["changes"]["scope_category"]["new"]
+            == "CHANGE_REQUEST"
+        )
+
+    finally:
+        delete_organization_by_name(organization_name)
+        delete_user_by_email(owner_email)
